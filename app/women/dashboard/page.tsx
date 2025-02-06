@@ -10,6 +10,7 @@ import { fetchJobs } from "@/app/utils/jobApi";
 import { getAllEvents } from "@/app/utils/eventApi";
 import { registerEvent, fetchEventRegistrations } from "@/app/utils/registeredEventApi"; // Import APIs
 import * as Dialog from "@radix-ui/react-dialog";
+import { createApplication, getApplications } from "@/app/utils/appliedJobsApi";
 
 // Dummy data
 const initialJobs = [
@@ -79,13 +80,39 @@ export default function WomenDashboard() {
     fetchRegisteredEvents(); // Fetch registered events on component mount
   }, []);
 
-  const handleApplyJob = (e) => {
+  useEffect(() => {
+    const fetchAppliedJobs = async () => {
+      try {
+        const appliedJobsData = await getApplications();
+        setAppliedJobs(appliedJobsData);
+      } catch (error) {
+        console.error("Error fetching applied jobs:", error);
+      }
+    };
+
+    fetchAppliedJobs();
+  }, []);
+
+  const handleApplyJob = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const applicationData = Object.fromEntries(formData);
-    setAppliedJobs([...appliedJobs, { ...selectedJob, ...applicationData }]);
-    setSelectedJob(null);
-    setIsModalOpen(true);
+    const name = formData.get("name");
+
+    const applicationData = {
+      applicantName: name,
+      jobId: selectedJob._id,
+    };
+    try {
+      // Call the API to create the job application
+      const response = await createApplication(applicationData);
+      console.log("Application submitted successfully:", response);
+
+      // Close the modal and reset the selected job
+      setSelectedJob(null);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Error submitting application:", error);
+    }
   };
 
   const handleRSVP = async (e) => {
@@ -156,13 +183,17 @@ export default function WomenDashboard() {
           <CardContent>
             <ul className="space-y-4">
               {events.map((event) => (
-                <li key={event._id} className="flex justify-between items-center">
+                <li
+                  key={event._id}
+                  className="flex justify-between items-center"
+                >
                   <div>
                     <h3 className="font-semibold text-gray-800 dark:text-white">
                       {event.title}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(event.date).toLocaleDateString()} - {event.location}
+                      {new Date(event.date).toLocaleDateString()} -{" "}
+                      {event.location}
                     </p>
                   </div>
                   <Button
@@ -247,19 +278,13 @@ export default function WomenDashboard() {
         <CardContent>
           {appliedJobs.length > 0 ? (
             <ul className="space-y-4">
-              {appliedJobs.map((job, index) => (
-                <li key={index} className="flex justify-between items-center">
+              {appliedJobs.map((job) => (
+                <li key={job._id} className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold text-gray-800 dark:text-white">
-                      {job.title}
+                      {job.jobId.title} - {job.applicantName}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {job.company} - {job.category}
-                    </p>
                   </div>
-                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                    Applied
-                  </span>
                 </li>
               ))}
             </ul>
@@ -268,6 +293,7 @@ export default function WomenDashboard() {
               You haven't applied to any jobs yet.
             </p>
           )}
+
           <div className="mt-4">
             <Button asChild variant="link">
               <Link href="/women/applications">View All Applications</Link>
@@ -315,10 +341,14 @@ export default function WomenDashboard() {
 
       {/* Modal for success message */}
       <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <Dialog.Overlay className="fixed inset-0 bg-black opacity-50" />
-        <Dialog.Content className="fixed top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded shadow-lg">
-          <Dialog.Title className="text-xl font-semibold">Success!</Dialog.Title>
-          <p>Your application has been submitted successfully.</p>
+        <Dialog.Overlay className="fixed inset-0 bg-black opacity-50 dark:bg-black dark:opacity-70" />
+        <Dialog.Content className="fixed top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 p-8 rounded shadow-lg dark:text-white">
+          <Dialog.Title className="text-xl font-semibold dark:text-white">
+            Success!
+          </Dialog.Title>
+          <p className="dark:text-gray-300">
+            Your application has been submitted successfully.
+          </p>
           <div className="mt-4">
             <Button onClick={() => setIsModalOpen(false)}>Close</Button>
           </div>

@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight } from "lucide-react";
 import { fetchJobs, createJob } from "@/app/utils/jobApi";
-import { createEvent, getAllEvents } from "@/app/utils/eventApi"
+import { createEvent, getAllEvents } from "@/app/utils/eventApi";
+import { getApplications } from "@/app/utils/appliedJobsApi";
 
 // Dummy data
 const initialEvents = [
@@ -32,6 +33,9 @@ export default function OrganizationDashboard() {
   const [events, setEvents] = useState(initialEvents);
   const [showAddJobForm, setShowAddJobForm] = useState(false);
   const [showAddEventForm, setShowAddEventForm] = useState(false);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [applicants, setApplicants] = useState([]);
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -48,19 +52,19 @@ export default function OrganizationDashboard() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const fetchedEvents = await getAllEvents()
-        setEvents(fetchedEvents)
+        const fetchedEvents = await getAllEvents();
+        setEvents(fetchedEvents);
       } catch (error) {
-        console.error("Error fetching events:", error)
+        console.error("Error fetching events:", error);
       }
-    }
+    };
 
-    fetchEvents()
-  }, [])
+    fetchEvents();
+  }, []);
   const handleAddJob = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    console.log(e.target)
+    console.log(e.target);
     const jobData = Object.fromEntries(formData);
     try {
       const newJob = await createJob(jobData);
@@ -73,18 +77,44 @@ export default function OrganizationDashboard() {
   };
 
   const handleAddEvent = async (e) => {
-    e.preventDefault()
-    const formData = new FormData(e.target)
-    const eventData = Object.fromEntries(formData)
-    
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const eventData = Object.fromEntries(formData);
+
     try {
-      const newEvent = await createEvent(eventData)
-      setEvents([...events, { id: events.length + 1, ...newEvent }])
-      setShowAddEventForm(false)
+      const newEvent = await createEvent(eventData);
+      setEvents([...events, { id: events.length + 1, ...newEvent }]);
+      setShowAddEventForm(false);
     } catch (error) {
-      console.error("Error adding event:", error)
+      console.error("Error adding event:", error);
     }
-  }
+  };
+
+  const openJobModal = async (job) => {
+    setSelectedJob(job);
+    try {
+      const jobApplicants = await getApplications(job._id); // Fetch applicants by job ID
+      console.log("applicants are:", jobApplicants);
+
+      // Filter applicants whose jobId matches the selected job, then extract only their names
+      const filteredApplicants = jobApplicants
+        .filter((applicant) => applicant.jobId._id === job._id) // Ensure jobId._id matches the selected job
+        .map((applicant) => applicant.applicantName); // Extract only applicant names
+
+      console.log("Filtered applicants:", filteredApplicants);
+
+      setApplicants(filteredApplicants);
+      setShowJobModal(true);
+    } catch (error) {
+      console.error("Error fetching applicants:", error);
+    }
+  };
+
+  const closeJobModal = () => {
+    setShowJobModal(false);
+    setSelectedJob(null);
+    setApplicants([]);
+  };
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -249,18 +279,19 @@ export default function OrganizationDashboard() {
                       {job.requirements.join(", ")}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      <strong>openings:</strong>{" "}
-                      {job.openings}
+                      <strong>openings:</strong> {job.openings}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                       <strong>Posted On:</strong>{" "}
                       {new Date(job.postedAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/organization/jobs/${job.id}`}>
-                      View <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  <Button
+                    onClick={() => openJobModal(job)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    View
                   </Button>
                 </li>
               ))}
@@ -289,7 +320,8 @@ export default function OrganizationDashboard() {
                       {event.title}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(event.date).toLocaleDateString()} - {event.location}
+                      {new Date(event.date).toLocaleDateString()} -{" "}
+                      {event.location}
                     </p>
                   </div>
                   <Button asChild variant="outline" size="sm">
@@ -308,6 +340,46 @@ export default function OrganizationDashboard() {
           </CardContent>
         </Card>
       </div>
+      {/* Modal for displaying job details and applicants */}
+      {showJobModal && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h2 className="text-xl font-semibold mb-4">Job Details</h2>
+            <p>
+              <strong>Title:</strong> {selectedJob.title}
+            </p>
+            <p>
+              <strong>Description:</strong> {selectedJob.description}
+            </p>
+            <p>
+              <strong>Category:</strong> {selectedJob.category}
+            </p>
+            <p>
+              <strong>Location:</strong> {selectedJob.location}
+            </p>
+
+            <h3 className="mt-4 font-semibold">Applicants</h3>
+            <ul className="mt-2">
+              {applicants.length > 0 ? (
+                applicants.map((name, index) => (
+                  <li
+                    key={index}
+                    className="py-1 text-gray-700 dark:text-gray-300"
+                  >
+                    {name}
+                  </li>
+                ))
+              ) : (
+                <p className="text-gray-500">No applicants yet.</p>
+              )}
+            </ul>
+
+            <Button className="mt-4 w-full" onClick={closeJobModal}>
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

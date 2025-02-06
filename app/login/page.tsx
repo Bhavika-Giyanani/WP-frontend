@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const [isWomenLogin, setIsWomenLogin] = useState(true);
+  const [isWomenLogin, setIsWomenLogin] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
