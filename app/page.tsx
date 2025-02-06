@@ -23,12 +23,12 @@ export default function Home() {
           designed for women.
         </p>
         <div className="flex justify-center space-x-6">
-          <Link href="/women/dashboard" passHref>
+          <Link href="/login" passHref>
             <Button asChild size="lg" className="text-lg px-8 py-6">
               <span>Join as a Adhyari</span>
             </Button>
           </Link>
-          <Link href="/organization/dashboard" passHref>
+          <Link href="/login" passHref>
             <Button
               asChild
               variant="outline"
