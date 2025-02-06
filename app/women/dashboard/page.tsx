@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchJobs } from "@/app/utils/jobApi";
 import { getAllEvents } from "@/app/utils/eventApi";
-import * as Dialog from "@radix-ui/react-dialog"; // Import Radix Dialog components
+import { registerEvent, fetchEventRegistrations } from "@/app/utils/registeredEventApi"; // Import APIs
+import * as Dialog from "@radix-ui/react-dialog";
 
 // Dummy data
 const initialJobs = [
@@ -35,30 +36,16 @@ const initialJobs = [
   },
 ];
 
-const initialEvents = [
-  {
-    id: 1,
-    title: "Women in Crafts Workshop",
-    date: "2023-07-15",
-    location: "Online",
-  },
-  {
-    id: 2,
-    title: "Entrepreneurship Seminar",
-    date: "2023-08-01",
-    location: "City Convention Center",
-  },
-];
-
 export default function WomenDashboard() {
   const [jobs, setJobs] = useState([]);
   const [events, setEvents] = useState([]);
   const [appliedJobs, setAppliedJobs] = useState([]);
+  const [registeredEvents, setRegisteredEvents] = useState([]); // State for registered events
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for controlling modal visibility
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch jobs from the backend
+  // Fetch jobs and events from the backend
   useEffect(() => {
     const getJobs = async () => {
       try {
@@ -69,10 +56,6 @@ export default function WomenDashboard() {
       }
     };
 
-    getJobs();
-  }, []);
-
-  useEffect(() => {
     const fetchEvents = async () => {
       try {
         const fetchedEvents = await getAllEvents();
@@ -82,7 +65,18 @@ export default function WomenDashboard() {
       }
     };
 
+    const fetchRegisteredEvents = async () => {
+      try {
+        const registrations = await fetchEventRegistrations();
+        setRegisteredEvents(registrations);
+      } catch (error) {
+        console.error("Error fetching registered events:", error);
+      }
+    };
+
+    getJobs();
     fetchEvents();
+    fetchRegisteredEvents(); // Fetch registered events on component mount
   }, []);
 
   const handleApplyJob = (e) => {
@@ -91,16 +85,32 @@ export default function WomenDashboard() {
     const applicationData = Object.fromEntries(formData);
     setAppliedJobs([...appliedJobs, { ...selectedJob, ...applicationData }]);
     setSelectedJob(null);
-    setIsModalOpen(true); // Show modal after successful application
+    setIsModalOpen(true);
   };
 
-  const handleRSVP = (e) => {
+  const handleRSVP = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const rsvpData = Object.fromEntries(formData);
-    console.log("RSVP submitted:", { ...selectedEvent, ...rsvpData });
-    setSelectedEvent(null);
-    setIsModalOpen(true);
+
+    try {
+      // Submit RSVP data to the backend
+      await registerEvent({
+        event_id: selectedEvent._id, // Use the selected event's ID
+        name: rsvpData.name,
+        phoneNumber: rsvpData.phone,
+      });
+
+      // Fetch updated registered events
+      const registrations = await fetchEventRegistrations();
+      setRegisteredEvents(registrations);
+
+      // Close the RSVP form and show success modal
+      setSelectedEvent(null);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Error submitting RSVP:", error);
+    }
   };
 
   return (
@@ -217,8 +227,12 @@ export default function WomenDashboard() {
           <CardContent>
             <form onSubmit={handleRSVP} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required />
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" name="name" required />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" name="phone" type="tel" required />
               </div>
               <Button type="submit">Submit RSVP</Button>
             </form>
@@ -261,6 +275,43 @@ export default function WomenDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Display Registered Events */}
+      <Card className="mt-8">
+  <CardHeader>
+    <CardTitle>Registered Events</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {registeredEvents.length > 0 ? (
+      <ul className="space-y-4">
+        {registeredEvents.map((registration) => (
+          <li key={registration._id} className="flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-white">
+                {registration.event_id?.title || 'Event Unavailable'}
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                {registration.event_id?.date ? 
+                  `${new Date(registration.event_id.date).toLocaleDateString()} - ${registration.event_id.location}` : 
+                  'Date and location unavailable'}
+              </p>
+              <p className="text-xs text-gray-500">
+                Registered on: {new Date(registration.registration_date).toLocaleDateString()}
+              </p>
+            </div>
+            <span className="text-sm font-medium text-green-600 dark:text-green-400">
+              Registered
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-gray-600 dark:text-gray-300">
+        You haven't registered for any events yet.
+      </p>
+    )}
+  </CardContent>
+</Card>
 
       {/* Modal for success message */}
       <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
