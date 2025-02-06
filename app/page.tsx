@@ -15,7 +15,7 @@ export default function Home() {
     <div className="container mx-auto px-6 py-12">
       <section className="text-center mb-20">
         <h1 className="text-5xl font-bold text-gray-800 dark:text-white mb-6">
-          Empowering Women in the Workforce
+          Empowering Adhyari in the Workforce
         </h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-3xl mx-auto">
           Join our platform to connect with tailored job opportunities, attend
@@ -25,7 +25,7 @@ export default function Home() {
         <div className="flex justify-center space-x-6">
           <Link href="/women/dashboard" passHref>
             <Button asChild size="lg" className="text-lg px-8 py-6">
-              <span>Join as a Woman</span>
+              <span>Join as a Adhyari</span>
             </Button>
           </Link>
           <Link href="/organization/dashboard" passHref>

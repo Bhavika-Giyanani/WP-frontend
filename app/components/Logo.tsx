@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 
 export function Logo() {
   return (
@@ -7,7 +8,13 @@ export function Logo() {
         <div className="absolute inset-0 bg-primary rounded-lg transform group-hover:rotate-6 transition-transform"></div>
         <div className="absolute inset-0 bg-secondary rounded-lg transform group-hover:-rotate-6 transition-transform opacity-70"></div>
         <div className="absolute inset-0 bg-accent rounded-lg transform transition-transform"></div>
-        <span className="relative font-bold text-xl text-primary-foreground">W</span>
+        <Image 
+          src="/Adhyari.png" 
+          alt="Adhyari Logo" 
+          layout="fill"
+          objectFit="cover"
+          className="relative"
+        />
       </div>
       <span className="text-xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
         WomenRise
