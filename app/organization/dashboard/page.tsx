@@ -11,6 +11,7 @@ import { ArrowRight } from "lucide-react";
 import { fetchJobs, createJob } from "@/app/utils/jobApi";
 import { createEvent, getAllEvents } from "@/app/utils/eventApi";
 import { getApplications } from "@/app/utils/appliedJobsApi";
+import { getApplicantsForEvent } from "@/app/utils/registeredEventApi";
 
 // Dummy data
 const initialEvents = [
@@ -36,6 +37,9 @@ export default function OrganizationDashboard() {
   const [showJobModal, setShowJobModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [registrations, setRegistrations] = useState([]);
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -114,6 +118,23 @@ export default function OrganizationDashboard() {
     setShowJobModal(false);
     setSelectedJob(null);
     setApplicants([]);
+  };
+
+  const openEventModal = async (event) => {
+    setSelectedEvent(event);
+    try {
+      const eventRegistrations = await getApplicantsForEvent(event._id); // Fetch registrations for the selected event
+      setRegistrations(eventRegistrations);
+      setShowEventModal(true);
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
+    }
+  };
+
+  const closeEventModal = () => {
+    setShowEventModal(false);
+    setSelectedEvent(null);
+    setRegistrations([]);
   };
 
   return (
@@ -311,23 +332,17 @@ export default function OrganizationDashboard() {
           <CardContent>
             <ul className="space-y-4">
               {events.map((event) => (
-                <li
-                  key={event.id}
-                  className="flex justify-between items-center"
-                >
+                <li key={event.id} className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold text-gray-800 dark:text-white">
                       {event.title}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(event.date).toLocaleDateString()} -{" "}
-                      {event.location}
+                      {new Date(event.date).toLocaleDateString()} - {event.location}
                     </p>
                   </div>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/organization/events/${event.id}`}>
-                      View <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                  <Button onClick={() => openEventModal(event)} variant="outline" size="sm">
+                    View
                   </Button>
                 </li>
               ))}
@@ -377,6 +392,32 @@ export default function OrganizationDashboard() {
             <Button className="mt-4 w-full" onClick={closeJobModal}>
               Close
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for displaying event details and registrations */}
+      {showEventModal && selectedEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h2 className="text-xl font-semibold mb-4">Event Details</h2>
+            <p><strong>Title:</strong> {selectedEvent.title}</p>
+            <p><strong>Description:</strong> {selectedEvent.description}</p>
+            <p><strong>Category:</strong> {selectedEvent.category}</p>
+            <p><strong>Location:</strong> {selectedEvent.location}</p>
+
+            <h3 className="mt-4 font-semibold">Registrations</h3>
+            <ul className="mt-2">
+              {registrations.length > 0 ? (
+                registrations.map((registration) => (
+                  <li key={registration.id} className="py-1 text-gray-700 dark:text-gray-300">{registration.name}</li>
+                ))
+              ) : (
+                <p className="text-gray-500">No registrations yet.</p>
+              )}
+            </ul>
+
+            <Button className="mt-4 w-full" onClick={closeEventModal}>Close</Button>
           </div>
         </div>
       )}
