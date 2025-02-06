@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchJobs } from "@/app/utils/jobApi";
-import { getAllEvents } from "@/app/utils/eventApi"
+import { getAllEvents } from "@/app/utils/eventApi";
+import * as Dialog from "@radix-ui/react-dialog"; // Import Radix Dialog components
 
 // Dummy data
 const initialJobs = [
@@ -55,6 +56,7 @@ export default function WomenDashboard() {
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false); // State for controlling modal visibility
 
   // Fetch jobs from the backend
   useEffect(() => {
@@ -89,6 +91,7 @@ export default function WomenDashboard() {
     const applicationData = Object.fromEntries(formData);
     setAppliedJobs([...appliedJobs, { ...selectedJob, ...applicationData }]);
     setSelectedJob(null);
+    setIsModalOpen(true); // Show modal after successful application
   };
 
   const handleRSVP = (e) => {
@@ -97,6 +100,7 @@ export default function WomenDashboard() {
     const rsvpData = Object.fromEntries(formData);
     console.log("RSVP submitted:", { ...selectedEvent, ...rsvpData });
     setSelectedEvent(null);
+    setIsModalOpen(true);
   };
 
   return (
@@ -122,9 +126,7 @@ export default function WomenDashboard() {
                       {job.company} - {job.category}
                     </p>
                   </div>
-                  <Button onClick={() =>
-                     setSelectedJob(job)
-                  } size="sm">
+                  <Button onClick={() => setSelectedJob(job)} size="sm">
                     Apply
                   </Button>
                 </li>
@@ -259,6 +261,18 @@ export default function WomenDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal for success message */}
+      <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <Dialog.Overlay className="fixed inset-0 bg-black opacity-50" />
+        <Dialog.Content className="fixed top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded shadow-lg">
+          <Dialog.Title className="text-xl font-semibold">Success!</Dialog.Title>
+          <p>Your application has been submitted successfully.</p>
+          <div className="mt-4">
+            <Button onClick={() => setIsModalOpen(false)}>Close</Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Root>
     </div>
   );
 }
